@@ -17,6 +17,14 @@ std::string catchmentDataFile = "";
 std::string nexusDataFile = "";
 std::string REALIZATION_CONFIG_PATH = "";
 
+#ifdef NGEN_MPI_ACTIVE
+#include <mpi.h>
+
+std::string PARTITION_PATH = "";
+int mpi_rank;
+int mpi_num_procs;
+#endif
+
 std::unordered_map<std::string, std::ofstream> nexus_outfiles;
 
 pdm03_struct get_et_params() {
@@ -46,6 +54,7 @@ int main(int argc, char *argv[]) {
         //arg 3 is nexus_data file path
         //arg 4 is nexus subset ids, comma seperated string of ids (no spaces!), "" for all
         //arg 5 is realization config path
+        //arg 7 is the partion file path
 
         std::vector<string> catchment_subset_ids;
         std::vector<string> nexus_subset_ids;
@@ -82,7 +91,29 @@ int main(int argc, char *argv[]) {
           }
           else{ REALIZATION_CONFIG_PATH = argv[5]; }
 
+
+	  #ifdef NGEN_MPI_ACTIVE
+          if ( argc >= 7 ) {
+	    if ( !utils::FileChecker::file_is_readable(argv[6]) ) {
+            std::cout<<"partion path "<<argv[6]<<" not readable"<<std::endl;
+            error = true;
+            }
+            else{ PARTITION_PATH = argv[6]; }
+          }
+          else {
+	    std::cout << "Missing required arguement partion file path."
+          }
+          #endif
+
           if(error) exit(-1);
+
+	  #ifdef NGEN_MPI_ACTIVE
+          #initalize mpi
+          MPI_Init(NULL, NULL);
+          MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+          MPI_Comm_size(MPI_COMM_WORLD, &mpi_num_procs);
+          #endif
+
           //split the subset strings into vectors
           boost::split(catchment_subset_ids, argv[2], [](char c){return c == ','; } );
           boost::split(nexus_subset_ids, argv[4], [](char c){return c == ','; } );
@@ -105,7 +136,12 @@ int main(int argc, char *argv[]) {
     std::shared_ptr<realization::Formulation_Manager> manager = std::make_shared<realization::Formulation_Manager>(REALIZATION_CONFIG_PATH);
     manager->read(catchment_collection, utils::getStdOut());
     std::string link_key = "toid";
+    #ifdef MPI_ACTIVE
+    hy_features::HY_Features features = hy_features::HY_Features_MPI(partition_data, &link_key, manager, mpi_rank, mpi_num_procs);
+    #else
     hy_features::HY_Features features = hy_features::HY_Features(catchment_collection, &link_key, manager);
+    #endif
+
     //validate dendridic connections
     features.validate_dendridic();
     //TODO don't really need catchment_collection once catchments are added to nexus collection
