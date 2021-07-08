@@ -137,6 +137,7 @@ int main(int argc, char *argv[]) {
     manager->read(catchment_collection, utils::getStdOut());
     std::string link_key = "toid";
     #ifdef MPI_ACTIVE
+    Partitions_Parser(PARTITION_PATH) partition_parser;
     hy_features::HY_Features features = hy_features::HY_Features_MPI(partition_data, global_catchment_collection, &link_key, manager, mpi_rank, mpi_num_procs);
     #else
     hy_features::HY_Features features = hy_features::HY_Features(catchment_collection, &link_key, manager);
