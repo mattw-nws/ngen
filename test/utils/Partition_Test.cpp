@@ -3,12 +3,18 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
+#include <vector>
 
 #include "core/Partition_Parser.hpp"
+#include "FileChecker.h"
+#include "network.hpp"
 
 class PartitionsParserTest: public ::testing::Test {
 
     protected:
+    
+    std::vector<std::string> data_paths;
+    std::vector<std::string> hydro_fabric_paths;
 
     PartitionsParserTest() {
 
@@ -16,6 +22,18 @@ class PartitionsParserTest: public ::testing::Test {
 
     ~PartitionsParserTest() override {
 
+    }
+    
+    std::string file_search(const std::vector<std::string> &parent_dir_options, const std::string& file_basename) 
+    {
+        // Build vector of names by building combinations of the path and basename options
+        std::vector<std::string> name_combinations;
+
+        // Build so that all path names are tried for given basename before trying a different basename option
+        for (auto & path_option : parent_dir_options)
+            name_combinations.push_back(path_option + file_basename);
+
+        return utils::FileChecker::find_first_readable(name_combinations);
     }
 
     void SetUp() override;
@@ -35,35 +53,215 @@ void PartitionsParserTest::TearDown() {
 }
 
 void PartitionsParserTest::setupArbitraryExampleCase() {
-
+    data_paths = {
+                "test/data/partitions/",
+                "./test/data/partitions/",
+                "../test/data/partitions/",
+                "../../test/data/partitions/",
+        };
+        
+    hydro_fabric_paths = {
+        "data/",
+        "./data/",
+        "../data/",
+        "../../data/",
+    
+    };    
 }
 
 TEST_F(PartitionsParserTest, TestFileReader)
 {
-  const std::string file_path = "/home/shengting.cui/MPI/ngen/data/example_partition_config.json";
+  const std::string file_path = file_search(data_paths,"partition_huc01_100.json");
   Partitions_Parser partitions_parser = Partitions_Parser(file_path);
 
-  boost::property_tree::ptree loaded_tree;
-  boost::property_tree::json_parser::read_json(file_path, loaded_tree);
-  boost::property_tree::ptree tree = loaded_tree;
+  partitions_parser.read_partition_file();
 
-  partitions_parser.read_partition_file(tree);
 
-  int i;
-  std::string part_id;
-  for (i = 0; i <= 1; i++)
-  {
-    part_id = std::to_string(i);
-    partitions_parser.get_part_strt(part_id);
-  }
 
-  for (i = 0; i <= 1; i++)
-  {
-    part_id = std::to_string(i);
-    partitions_parser.get_mpi_rank(part_id);
-  }
 
-  
   ASSERT_TRUE(true);
   
+}
+
+TEST_F(PartitionsParserTest, DisplayPartitionData)
+{
+    const std::string file_path = file_search(data_paths,"partition_huc01_100.json");
+    Partitions_Parser partitions_parser = Partitions_Parser(file_path);
+
+    partitions_parser.read_partition_file();
+
+    for( const auto& n : partitions_parser.partition_ranks )
+    {
+        std::cout << n.first << ": (";  
+        
+        const PartitionData& part_data = n.second;
+        
+        for ( const auto& s : part_data.cat_ids )
+        {
+            std::cout << s << " ";
+        }
+        
+        std::cout << ") \n";
+    }
+
+
+    ASSERT_TRUE(true);
+      
+}
+
+TEST_F(PartitionsParserTest, ReferenceHydrofabric)
+{
+    using network::Network;
+    
+    const std::string file_path = file_search(data_paths,"partition_huc01_100.json");
+    const std::string global_catchment_data_path = file_search(hydro_fabric_paths,"catchment_data.geojson");
+    
+    std::string link_key = "toid";
+   
+    
+    Partitions_Parser partition_parser = Partitions_Parser(file_path);
+
+    // get the catchement lists from the partition files
+    partition_parser.read_partition_file();
+
+    // read the global hydrofabric
+    geojson::GeoJSON global_catchment_collection = geojson::read("/apd_common/test/hydrofabric/catchment_data.geojson");
+    
+    // make a global network
+    Network global_network(global_catchment_collection, &link_key);
+    
+    // get he local hydro fabric
+    
+    auto& partitions = partition_parser.partition_ranks;  // get the map of all partitions
+    auto& local_data = partitions["1"];        // for some reason rank 0 has the string "root tree: 1" instead of 1
+    
+    // read the local catchment collection (if possible change this to not re read the json file)
+    geojson::GeoJSON local_catchment_collection = geojson::read("/apd_common/test/hydrofabric/catchment_data.geojson", local_data.cat_ids);
+    
+    // test each nexus in the local network to make sure its upstream and downstream exist in the local network
+    std::cout << "Printing local catchment ids.\n";
+    for ( const auto& n : local_data.cat_ids )
+    {
+        std::cout << n << "\n";
+    }
+    
+    // make a local network
+    Network local_network(local_catchment_collection, &link_key);
+    
+    // test each nexus in the local network to make sure its upstream and downstream exist in the local network
+    std::cout << "Printing local nexus ids.\n";
+    auto local_cats = local_network.filter("cat");
+    auto local_nexuses = local_network.filter("nex");
+    
+    bool test_value = true;
+    int remote_catchments = 0;
+    
+    for ( const auto& n : local_nexuses )
+    {
+        std::cout << "Searching for catchements connected to " << n << "\n";
+        
+        auto orgin_ids = global_network.get_origination_ids(n);
+        
+        std::cout << "Found " << orgin_ids.size() << " upstream catchments for nexus with id: " << n << "\n";
+        
+        for( auto id : orgin_ids )
+        {
+            // try to get each origin id
+            auto iter = std::find(local_cats.begin(), local_cats.end(), id);
+            
+            if ( iter == local_cats.end() )
+            {
+                // catchemnt is remote find the partition that contains it
+                std::cout << id << ": is not in local catchment set searching remote partitions.\n";
+                
+                int pos = -1;
+                for ( int i = 0; i < partitions.size(); ++i )
+                {
+                    std::string k = std::to_string(i);
+                    auto iter2 = std::find(partitions[k].cat_ids.begin(), partitions[k].cat_ids.end(), id);
+                    
+                    // if we find a match then we have found the target partition containing this id
+                    if ( iter2 != partitions[k].cat_ids.end() )
+                    {
+                        pos = i;
+                        break;
+                    }
+                }
+                
+                if ( pos >= 0 )
+                {
+                    std::cout << "Found id: " << id << " in partition: " << pos << "\n";
+                }
+                else
+                {
+                    std::cout << "Could not find id: " << id << " in any partition\n";
+                    test_value = false;
+                    ++remote_catchments;
+                }
+                
+                
+            }
+            else
+            {
+                std::cout << "Catchment with id: " << id << " is local\n";
+            }
+        }
+        
+        auto dest_ids = local_network.get_destination_ids(n);
+        
+        std::cout << "Found " << dest_ids.size() << " downstream catchments for nexus with id: " << n << "\n";
+        
+        for( auto id : dest_ids )
+        {
+            // try to get each origin id
+            auto iter = std::find(local_cats.begin(), local_cats.end(), id);
+            
+            if ( iter == local_cats.end() )
+            {
+                // catchemnt is remote find the partition that contains it
+                std::cout << id << ": is not in local catchment set searching remote partitions.\n";
+                
+                int pos = -1;
+                for ( int i = 0; i < partitions.size(); ++i )
+                {
+                    std::string k = std::to_string(i);
+                    auto iter2 = std::find(partitions[k].cat_ids.begin(), partitions[k].cat_ids.end(), id);
+                    
+                    // if we find a match then we have found the target partition containing this id
+                    if ( iter2 != partitions[k].cat_ids.end() )
+                    {
+                        pos = i;
+                        break;
+                    }
+                }
+                
+                if ( pos >= 0 )
+                {
+                    std::cout << "Found id: " << id << " in partition: " << pos << "\n";
+                }
+                else
+                {
+                    std::cout << "Could not find id: " << id << " in any partition\n";
+                    test_value = false;
+                    ++remote_catchments;
+                }
+                
+                
+            }
+            else
+            {
+                std::cout << "Catchment with id: " << id << " is local\n";
+            }
+        }
+        
+    }
+    
+    std::cout << "local network size: " << local_network.size() << "\n";
+    std::cout << "global network size " << global_network.size() << "\n";
+    std::cout << "remote catchments found " << remote_catchments << "\n";
+    
+
+
+    ASSERT_TRUE(test_value);
+      
 }

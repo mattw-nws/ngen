@@ -20,6 +20,18 @@
 #include <FeatureCollection.hpp>
 #include "JSONProperty.hpp"
 
+//This struct is moved from private section to here so that the unit test function can access it
+ struct PartitionData
+ {
+    int mpi_world_rank;
+    std::vector<std::string> cat_ids;
+    std::vector<std::string> nex_ids;
+    std::string remote_up_nex;
+    int remote_up_rank;
+    std::string remote_down_nex;
+    int remote_down_rank;
+ };
+
 
 class Partitions_Parser {
 
@@ -35,11 +47,11 @@ class Partitions_Parser {
         virtual ~Partitions_Parser(){};
 
         //The function that parses the json file and build a unordered map of structs for each line in the json list
-        partition_data read_partition_file() {
+        void read_partition_file() {
             std::cout << "\nroot_tree: " << tree.size() << std::endl;
 
             //Declare two partition_data type structs
-            partition_data part_data;
+            PartitionData part_data;
 
             //The outter loop iterating through the list of partitions
             int part_counter = 0;
@@ -107,22 +119,10 @@ class Partitions_Parser {
                 part_counter++;       
             }
             
-            return part_data;
+            return;
         };
 
-        //This struct is moved from private section to here so that the unit test function can access it
-        struct partition_data
-        {
-            int mpi_world_rank;
-            std::vector<std::string> cat_ids;
-            std::vector<std::string> nex_ids;
-            std::string remote_up_nex;
-            int remote_up_rank;
-            std::string remote_down_nex;
-            int remote_down_rank;
-        };
-
-        typedef partition_data part_strt;
+        typedef PartitionData part_strt;
         //The function retrieve an arbitrary struct based on the part_id passed to it
         part_strt get_part_strt(std::string part_id)
         {
@@ -132,7 +132,7 @@ class Partitions_Parser {
              * @param part_id The input parameter identify a specific partition struct
              * @return part_data The whole struct identified by part_id
             */
-            partition_data part_data;
+            PartitionData part_data;
             part_data = partition_ranks.at(part_id);
 
             std::cout << "\nget_part_strt, part_id: " << part_data.mpi_world_rank << std::endl;
@@ -163,7 +163,7 @@ class Partitions_Parser {
         int get_mpi_rank(std::string part_id)
         {
             //An example code for getting individual member of the struct identified by part_id
-            partition_data part_data;
+            PartitionData part_data;
             part_data = partition_ranks.at(part_id);
             int mpi_world_rank = part_data.mpi_world_rank;
 
@@ -171,7 +171,7 @@ class Partitions_Parser {
             return mpi_world_rank;
         };
 
-        std::unordered_map<std::string, partition_data> partition_ranks;
+        std::unordered_map<std::string, PartitionData> partition_ranks;
 
 
     private:
@@ -183,23 +183,6 @@ class Partitions_Parser {
         std::string remote_down_nex;
         int remote_down_rank;
 
-        //The following part is moved to the public section
-        /*
-        struct partition_data
-        {
-            int mpi_world_rank;
-            std::vector<std::string> cat_ids;
-            std::vector<std::string> nex_ids;
-            std::string remote_up_nex;
-            int remote_up_rank;
-            std::string remote_down_nex;
-            int remote_down_rank;
-        };
-        typedef partition_data part_strt;
-        part_strt get_part_strt(std::string part_id);
-        
-        std::unordered_map<std::string, partition_data> partition_ranks;
-        */
 
         boost::property_tree::ptree tree;
 };

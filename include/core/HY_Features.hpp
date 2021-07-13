@@ -13,8 +13,9 @@ namespace hy_features {
 
 
     class HY_Features {
-      using Formulation_Manager = realization::Formulation_Manager;
       public:
+        using Formulation_Manager = realization::Formulation_Manager;
+      
         HY_Features() {}
         HY_Features( geojson::GeoJSON fabric, std::shared_ptr<Formulation_Manager> formulations );
         HY_Features( network::Network network, std::shared_ptr<Formulation_Manager> formulations);

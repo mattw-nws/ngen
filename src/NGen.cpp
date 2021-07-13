@@ -101,14 +101,14 @@ int main(int argc, char *argv[]) {
             else{ PARTITION_PATH = argv[6]; }
           }
           else {
-	    std::cout << "Missing required arguement partion file path."
+	    std::cout << "Missing required arguement partion file path.";
           }
           #endif
 
           if(error) exit(-1);
 
 	  #ifdef NGEN_MPI_ACTIVE
-          #initalize mpi
+          //initalize mpi
           MPI_Init(NULL, NULL);
           MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
           MPI_Comm_size(MPI_COMM_WORLD, &mpi_num_procs);
