@@ -159,7 +159,10 @@ TEST_F(JSONProperty_Test, ptree_test) {
                "\"coordinates\": [0.0,1.0,3.0], "
                "\"boolean_value\": true, " 
                "\"natural_value\": 4, "
-               "\"real_value\": 4.3123 "
+               "\"real_value\": 4.3123, "
+               "\"empty_object\": {}, "
+               "\"empty_array\": [], "
+               "\"empty_string\": \"\""
            "}";
 
     std::stringstream stream;
@@ -172,7 +175,7 @@ TEST_F(JSONProperty_Test, ptree_test) {
         properties.push_back(geojson::JSONProperty(pair.first, pair.second));
     }
 
-    ASSERT_EQ(properties.size(), 5);
+    ASSERT_EQ(properties.size(), 8);
     ASSERT_EQ(properties[0].get_type(), geojson::PropertyType::String);
     ASSERT_EQ(properties[0].as_string(), "LineString");
 
@@ -185,4 +188,7 @@ TEST_F(JSONProperty_Test, ptree_test) {
     ASSERT_EQ(properties[2].get_type(), geojson::PropertyType::Boolean);
     ASSERT_EQ(properties[3].get_type(), geojson::PropertyType::Natural);
     ASSERT_EQ(properties[4].get_type(), geojson::PropertyType::Real);
+    EXPECT_NE(properties[5].get_type(), geojson::PropertyType::Real);
+    EXPECT_NE(properties[6].get_type(), geojson::PropertyType::Real);
+    EXPECT_NE(properties[7].get_type(), geojson::PropertyType::Real);
 }
