@@ -4,6 +4,17 @@ if(MPI_ACTIVE)
    set (CMAKE_CXX_COMPILER "mpicxx")
 endif()
 
+# Collect cache arguments for passing to ExternalProject[s]
+# from https://stackoverflow.com/a/48555098/489116
+get_cmake_property(vars CACHE_VARIABLES)
+foreach(var ${vars})
+  get_property(currentHelpString CACHE "${var}" PROPERTY HELPSTRING)
+    if("${currentHelpString}" MATCHES "No help, variable specified on the command line." OR "${currentHelpString}" STREQUAL "")
+        # message("${var} = [${${var}}]  --  ${currentHelpString}") # uncomment to see the variables being processed
+        list(APPEND CL_ARGS "-D${var}=${${var}}")
+    endif()
+endforeach()
+
 ########### Define project version and use via generated config header
 project(ngen VERSION 0.1.0)
 configure_file(include/NGenConfig.h.in include/NGenConfig.h)
@@ -64,7 +75,37 @@ function(git_update_submodule PATH)
             RESULT_VARIABLE GIT_SUBMOD_RESULT
             )
         if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-            message(FATAL_ERROR "git submodule update --init for \"${PATH}\" failed with ${GIT_SUBMOD_RESULT}")
+            message(FATAL_ERROR "git submodule update --init for ${PATH} failed with ${GIT_SUBMOD_RESULT}")
+        endif()
+    else()
+        message(FATAL_ERROR "Git not detected: cannot obtain Udunits submodule (but how is this even working?)")
+    endif()
+endfunction()
+
+include(ExternalProject)
+
+# Account for different OS and how that impacts shared lib file names
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+    set(SHARED_LIB_EXTENSION "dylib")
+elseif(WIN32)
+    error( "Windows platforms are not currently supported" )
+else()
+    set(SHARED_LIB_EXTENSION "so")
+endif()
+
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    # Update submodules as needed
+    option(GIT_SUBMODULE "Check submodules during build" ON)
+endif()
+function(git_update_submodule PATH)
+    if(GIT_SUBMODULE)
+        message(STATUS "Updating submodule ${PATH}")
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init -- ${PATH}
+            RESULT_VARIABLE GIT_SUBMOD_RESULT
+            )
+        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+            message(FATAL_ERROR "git submodule update --init for ${PATH} failed with ${GIT_SUBMOD_RESULT}")
         endif()
     else()
         message(FATAL_ERROR "Git not detected: cannot obtain submodule at \"${PATH}\" (but how is this even working?)")
@@ -161,6 +202,91 @@ endif()
 add_executable(ngen
     src/NGen.cpp
     )
+
+# Non-linked submodules
+if(BUILD_MODULES_ALL)
+    message(STATUS "Adding BUILD_TOPMODEL, BUILD_CFE, BUILD_TAFKANOAHMP_SURFACE")
+    set(BUILD_TOPMODEL TRUE)
+    set(BUILD_CFE TRUE)
+    set(BUILD_TAFKANOAHMP_SURFACE TRUE)
+endif()
+if(BUILD_TOPMODEL)
+    set(SUBM_CMAKE_DIR ${PROJECT_SOURCE_DIR}/extern/topmodel)
+    set(SUBM_BUILD_DIR ${SUBM_CMAKE_DIR}/cmake_build)
+    set(SUBM_GITSUBM_DIR ${SUBM_CMAKE_DIR}/topmodel)
+    message(STATUS "Adding BMI_C_LIB_ACTIVE to support BUILD_TOPMODEL.")
+    set(BMI_C_LIB_ACTIVE TRUE)
+    git_update_submodule(${SUBM_GITSUBM_DIR})
+    ExternalProject_Add(topmodel_build
+        PREFIX ${SUBM_CMAKE_DIR}
+        SOURCE_DIR ${SUBM_CMAKE_DIR}
+        TMP_DIR ${SUBM_BUILD_DIR}/tmp
+        STAMP_DIR ${SUBM_BUILD_DIR}
+        BINARY_DIR ${SUBM_BUILD_DIR}
+        BUILD_COMMAND cmake --build . --target topmodelbmi
+        INSTALL_COMMAND "" # disable install step.
+        EXCLUDE_FROM_ALL TRUE
+    )
+    add_dependencies(ngen topmodel_build) # only to make it build, there is no actual linkage!
+endif()
+if(BUILD_CFE)
+    set(SUBM_CMAKE_DIR ${PROJECT_SOURCE_DIR}/extern/cfe)
+    set(SUBM_BUILD_DIR ${SUBM_CMAKE_DIR}/cmake_build)
+    set(SUBM_GITSUBM_DIR ${SUBM_CMAKE_DIR}/cfe)
+    message(STATUS "Adding BMI_C_LIB_ACTIVE to support BUILD_CFE.")
+    set(BMI_C_LIB_ACTIVE TRUE)
+    git_update_submodule(${SUBM_GITSUBM_DIR})
+    ExternalProject_Add(cfe_build
+        PREFIX ${SUBM_CMAKE_DIR}
+        SOURCE_DIR ${SUBM_CMAKE_DIR}
+        TMP_DIR ${SUBM_BUILD_DIR}/tmp
+        STAMP_DIR ${SUBM_BUILD_DIR}
+        BINARY_DIR ${SUBM_BUILD_DIR}
+        BUILD_COMMAND cmake --build . --target cfebmi
+        INSTALL_COMMAND "" # disable install step, which errors and is not needed.
+        EXCLUDE_FROM_ALL TRUE
+    )
+    add_dependencies(ngen cfe_build) # only to make it build, there is no actual linkage!
+endif()
+if(BUILD_TAFKANOAHMP_SURFACE)
+    set(SUBM_CMAKE_DIR ${PROJECT_SOURCE_DIR}/extern/noah-mp-modular)
+    set(SUBM_BUILD_DIR ${SUBM_CMAKE_DIR}/cmake_build)
+    set(SUBM_GITSUBM_DIR ${SUBM_CMAKE_DIR}/noah-mp-modular)
+    message(STATUS "Adding BUILD_ISO_C_FORTRAN_BMI to support BUILD_TAFKANOAAMP_SURFACE.")
+    set(BUILD_ISO_C_FORTRAN_BMI TRUE)
+    git_update_submodule(${SUBM_GITSUBM_DIR})
+    ExternalProject_Add(tafkanoahmp_surface_build
+        PREFIX ${SUBM_CMAKE_DIR}
+        SOURCE_DIR ${SUBM_CMAKE_DIR}
+        TMP_DIR ${SUBM_BUILD_DIR}/tmp
+        STAMP_DIR ${SUBM_BUILD_DIR}
+        BINARY_DIR ${SUBM_BUILD_DIR}
+        BUILD_COMMAND cmake --build . --target surfacebmi
+        INSTALL_COMMAND "" # disable install step, which errors and is not needed.
+        #CMAKE_ARGS ${CL_ARGS} # This might be needed, e.g. for netCDF stuff, now or in the future?
+        EXCLUDE_FROM_ALL TRUE
+    )
+    add_dependencies(ngen tafkanoahmp_surface_build) # only to make it build, there is no actual linkage!
+endif()
+if(BUILD_ISO_C_FORTRAN_BMI)
+    set(SUBM_CMAKE_DIR ${PROJECT_SOURCE_DIR}/extern/iso_c_fortran_bmi)
+    set(SUBM_BUILD_DIR ${SUBM_CMAKE_DIR}/cmake_build)
+    message(STATUS "Adding BMI_FORTRAN_ACTIVE to support BUILD_ISO_C_FORTRAN_BMI.")
+    set(BMI_FORTRAN_ACTIVE TRUE)
+    ExternalProject_Add(iso_c_fortran_bmi_build
+        PREFIX ${SUBM_CMAKE_DIR}
+        SOURCE_DIR ${SUBM_CMAKE_DIR}
+        TMP_DIR ${SUBM_BUILD_DIR}/tmp
+        STAMP_DIR ${SUBM_BUILD_DIR}
+        BINARY_DIR ${SUBM_BUILD_DIR}
+        BUILD_COMMAND cmake --build . --target iso_c_bmi
+        INSTALL_COMMAND "" # disable install step.
+        EXCLUDE_FROM_ALL TRUE
+    )
+    add_dependencies(ngen iso_c_fortran_bmi_build) # only to make it build, there is no actual linkage!
+    set(BMI_FORTRAN_ISO_C_LIB_PATH "${CMAKE_SOURCE_DIR}/extern/iso_c_fortran_bmi/cmake_build/libiso_c_bmi.${SHARED_LIB_EXTENSION}")
+    message(STATUS "INFO Setting BMI_FORTRAN_ISO_C_LIB_PATH to ${BMI_FORTRAN_ISO_C_LIB_PATH}")
+endif()
 
 # Handle several steps for BMI C library logic and dependencies, at top level, if functionality is turned on
 if(BMI_C_LIB_ACTIVE)
