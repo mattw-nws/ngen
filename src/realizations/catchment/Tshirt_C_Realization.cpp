@@ -113,9 +113,9 @@ Tshirt_C_Realization::Tshirt_C_Realization(
 
 Tshirt_C_Realization::Tshirt_C_Realization(
         std::string id,
-        unique_ptr<forcing::ForcingProvider> forcing_provider,
+        shared_ptr<data_access::GenericDataProvider> forcing_provider,
         utils::StreamHandler output_stream
-) : Catchment_Formulation(std::move(id), std::move(forcing_provider), output_stream) {
+) : Catchment_Formulation(std::move(id), forcing_provider, output_stream) {
     _link_legacy_forcing();
 
     fluxes = std::vector<std::shared_ptr<tshirt_c_result_fluxes>>();
@@ -434,7 +434,7 @@ double Tshirt_C_Realization::get_response(time_step_t t_index, time_step_t t_del
     //  forcing.  It may actually belong within the forcing object.
 
     // TODO: it also needs to account for getting the right precip data point (i.e., t_index may not be "next")
-    double precip = this->legacy_forcing.get_next_hourly_precipitation_meters_per_second();
+    double precip = this->legacy_forcing->get_next_hourly_precipitation_meters_per_second();
     int response_result = run_formulation_for_timestep(precip, t_delta_s);
     // TODO: check t_index is the next expected time step to be calculated
 

@@ -16,15 +16,15 @@
 #include <time.h>
 #include <memory>
 #include "AorcForcing.hpp"
-#include "ForcingProvider.hpp"
+#include "GenericDataProvider.hpp"
+#include "DataProviderSelectors.hpp"
 #include <exception>
 #include <UnitsHelper.hpp>
-
 
 /**
  * @brief Forcing class providing time-series precipiation forcing data to the model.
  */
-class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
+class CsvPerFeatureForcingProvider : public data_access::GenericDataProvider
 {
     public:
 
@@ -39,24 +39,33 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
         read_csv(forcing_config.path);
     }
 
-    // BEGIN ForcingProvider interface methods
+    // BEGIN DataProvider interface methods
 
     /**
-     * Get the inclusive beginning of the period of time over which this instance can provide data for this forcing.
+     * @brief the inclusive beginning of the period of time over which this instance can provide data for this forcing.
      *
      * @return The inclusive beginning of the period of time over which this instance can provide this data.
      */
-    time_t get_forcing_output_time_begin(const std::string &output_name) override {
+    long get_data_start_time() override {
         return start_date_time_epoch;
     }
 
     /**
-     * Get the exclusive ending of the period of time over which this instance can provide data for this forcing.
+     * @brief the exclusive ending of the period of time over which this instance can provide data for this forcing.
      *
      * @return The exclusive ending of the period of time over which this instance can provide this data.
      */
-    time_t get_forcing_output_time_end(const std::string &output_name) override {
+    long get_data_stop_time() override {
         return end_date_time_epoch;
+    }
+
+    /**
+     * @brief the duration of one record of this forcing source
+     *
+     * @return The duration of one record of this forcing source
+     */
+    long record_duration() override {
+        return time_epoch_vector[1] - time_epoch_vector[0];
     }
 
     /**
@@ -95,18 +104,19 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
      *
      * An @ref std::out_of_range exception should be thrown if the data for the time period is not available.
      *
-     * @param output_name The name of the forcing property of interest.
-     * @param init_time_epoch The epoch time (in seconds) of the start of the time period.
-     * @param duration_seconds The length of the time period, in seconds.
-     * @param output_units The expected units of the desired output value.
+     * @param selector Object storing information about the data to be queried
+     * @param m methode to resample data if needed
      * @return The value of the forcing property for the described time period, with units converted if needed.
      * @throws std::out_of_range If data for the time period is not available.
      */
-    double get_value(const std::string &output_name, const time_t &init_time, const long &duration_s,
-                     const std::string &output_units) override
+    double get_value(const CatchmentAggrDataSelector& selector, data_access::ReSampleMethod m) override
     {
         size_t current_index;
-        long time_remaining = duration_s;
+        long time_remaining = selector.get_duration_secs();
+        auto init_time = selector.get_init_time();
+        auto output_name = selector.get_variable_name();
+        auto output_units = selector.get_output_units();
+
         try {
             current_index = get_ts_index_for_time(init_time);
         }
@@ -115,6 +125,7 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
         }
 
         std::vector<double> involved_time_step_values;
+
         std::vector<long> involved_time_step_seconds;
         long ts_involved_s;
 
@@ -143,7 +154,7 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
             if (is_param_sum_over_time_step(output_name))
                 value += involved_time_step_values[i] * ((double)involved_time_step_seconds[i] / 3600.0);
             else
-                value += involved_time_step_values[i] * ((double)involved_time_step_seconds[i] / (double)duration_s);
+                value += involved_time_step_values[i] * ((double)involved_time_step_seconds[i] / (double)selector.get_duration_secs());
         }
 
         // Convert units
@@ -157,6 +168,12 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
             return value;
         }
     }
+
+    virtual std::vector<double> get_values(const CatchmentAggrDataSelector& selector, data_access::ReSampleMethod m) override
+    {
+        return std::vector<double>(1, get_value(selector, m));
+    }
+
 
     /**
      * Get whether a param's value is an aggregate sum over the entire time step.
@@ -203,32 +220,11 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
         return is_param_sum_over_time_step(name);
     }
 
-    const std::vector<std::string> &get_available_forcing_outputs() override {
+    const std::vector<std::string> &get_avaliable_variable_names() override {
         return available_forcings;
     }
 
     private:
-
-    // This map may be applicable to well-known netCDF formats as well?
-    map<std::string, std::tuple<std::string, std::string>> well_known_fields = {
-        {"precip_rate", { CSDMS_STD_NAME_LIQUID_EQ_PRECIP_RATE, "mm s^-1" } }, 
-        {"APCP_surface", { CSDMS_STD_NAME_RAIN_VOLUME_FLUX, "kg m^-2" } }, // Especially this one, is it correct? 
-        {"DLWRF_surface", { CSDMS_STD_NAME_SOLAR_LONGWAVE, "W m-2" } }, 
-        {"DSWRF_surface", { CSDMS_STD_NAME_SOLAR_SHORTWAVE, "W m-2" } }, 
-        {"PRES_surface", { CSDMS_STD_NAME_SURFACE_AIR_PRESSURE, "Pa" } }, 
-        {"SPFH_2maboveground", { NGEN_STD_NAME_SPECIFIC_HUMIDITY, "kg kg-1" } }, 
-        {"TMP_2maboveground", { CSDMS_STD_NAME_SURFACE_TEMP, "K" } }, 
-        {"UGRD_10maboveground", { CSDMS_STD_NAME_WIND_U_X, "m s-1" } }, 
-        {"VGRD_10maboveground", { CSDMS_STD_NAME_WIND_V_Y, "m s-1" } }, 
-        {"RAINRATE", { CSDMS_STD_NAME_LIQUID_EQ_PRECIP_RATE , "mm s^-1" } }, 
-        {"T2D", { CSDMS_STD_NAME_SURFACE_TEMP, "K" } }, 
-        {"Q2D", { NGEN_STD_NAME_SPECIFIC_HUMIDITY, "kg kg-1" } }, 
-        {"U2D", { CSDMS_STD_NAME_WIND_U_X, "m s-1" } }, 
-        {"V2D", { CSDMS_STD_NAME_WIND_V_Y, "m s-1" } }, 
-        {"PSFC", { CSDMS_STD_NAME_SURFACE_AIR_PRESSURE, "Pa" } }, 
-        {"SWDOWN", { CSDMS_STD_NAME_SOLAR_SHORTWAVE, "W m-2" } }, 
-        {"LWDOWN", { CSDMS_STD_NAME_SOLAR_LONGWAVE, "W m-2" } }
-    };
 
     /**
      * @brief Checks forcing vector index bounds and adjusts index if out of vector bounds
@@ -268,8 +264,8 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
         }
 
         std::string can_name = name;
-        if(well_known_fields.count(can_name) > 0){
-            auto t = well_known_fields[can_name];
+        if(data_access::WellKnownFields.count(can_name) > 0){
+            auto t = data_access::WellKnownFields.find(can_name)->second;
             can_name = std::get<0>(t);
         }
 
@@ -311,11 +307,12 @@ class CsvPerFeatureForcingProvider : public forcing::ForcingProvider
 
                 //TODO: parse units in parens and/or square brackets?
 
-                if(well_known_fields.count(var_name) > 0){
-                    units = units.empty() ? std::get<1>(well_known_fields[var_name]) : units;
+                auto wkf = data_access::WellKnownFields.find(var_name);
+                if(wkf != data_access::WellKnownFields.end()){
+                    units = units.empty() ? std::get<1>(wkf->second) : units;
                     available_forcings.push_back(var_name); // Allow lookup by non-canonical name
                     available_forcings_units[var_name] = units; // Allow lookup of units by non-canonical name
-                    var_name = std::get<0>(well_known_fields[var_name]); // Use the CSDMS name from here on
+                    var_name = std::get<0>(wkf->second); // Use the CSDMS name from here on
                 }
 
                 forcing_vectors[var_name] = {};

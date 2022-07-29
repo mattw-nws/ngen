@@ -159,6 +159,25 @@ if(UDUNITS_ACTIVE)
     #add_compile_definitions("NGEN_UDUNITS2_XML_PATH=\"${UDUNITS_INSTALL_DIR}/share/udunits/udunits2.xml\"")
 endif()
 
+cmake_policy(SET CMP0074 NEW)
+if(NETCDF_ACTIVE)
+    set (NETCDF_CXX "YES")
+    set (NETCDF_F77 "NO")
+    set (NETCDF_F90 "NO")
+    find_package(NetCDF REQUIRED)
+    add_compile_definitions(NETCDF_ACTIVE)
+    if(NETCDF_FOUND)
+        include_directories(${NETCDF_INCLUDE_DIRS})
+        if(NETCDF_HAS_PARALLEL)
+            message("INFO Using NETCDF (with parallel!) at ${NETCDF_LIBRARIES} and ${NETCDF_INCLUDE_DIRS}")
+        else()
+            message("INFO Using NETCDF (without parallel!) at ${NETCDF_LIBRARIES} and ${NETCDF_INCLUDE_DIRS}")
+        endif()
+    else()
+        message("INFO netCDF library not found")
+    endif()
+endif()
+
 add_executable(ngen
     src/NGen.cpp
     )
@@ -298,7 +317,7 @@ add_subdirectory("src/realizations/catchment")
 add_subdirectory("src/models/tshirt")
 add_subdirectory("src/models/kernels/reservoir")
 add_subdirectory("src/models/kernels/evapotranspiration")
-#add_subdirectory("src/forcing")
+add_subdirectory("src/forcing")
 
 target_link_libraries(ngen PUBLIC
         NGen::core
@@ -311,9 +330,10 @@ target_link_libraries(ngen PUBLIC
         NGen::kernels_reservoir
         NGen::kernels_evapotranspiration
         #NGen::kernels_reservoir_timeless
-        #NGen::forcing
+        NGen::forcing
         NGen::core_mediator
         libudunits2
+        ${NETCDF_LIBRARIES}
         )
 
 add_executable(partitionGenerator
