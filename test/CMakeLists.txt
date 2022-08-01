@@ -259,6 +259,7 @@ add_test(
         NGen::core
         NGen::realizations_catchment
         NGen::core_mediator
+        NGen::forcing
         libudunits2
         ${NETCDF_LIBRARIES}
 )
