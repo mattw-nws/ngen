@@ -260,6 +260,7 @@ add_test(
         NGen::realizations_catchment
         NGen::core_mediator
         libudunits2
+        ${NETCDF_LIBRARIES}
 )
 
 ########################## Internal Torchlib LSTM Tests
