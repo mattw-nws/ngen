@@ -65,6 +65,13 @@ jobs:
           targets: "compare_pet"
           build-cores: ${{ env.LINUX_NUM_PROC_CORES }}
 
+      - name: Build PET Lib
+        id: submod_build_5
+        uses: ./.github/actions/ngen-submod-build
+        with:
+          mod-dir: "extern/evapotranspiration/evapotranspiration"
+          targets: "petbmi"
+
       - name: Run Tests
         run: ./cmake_build/test/compare_pet
         timeout-minutes: 15
