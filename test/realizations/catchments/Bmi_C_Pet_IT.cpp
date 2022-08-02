@@ -1,3 +1,13 @@
+#ifndef BMI_TEST_C_LOCAL_LIB_NAME
+#ifdef __APPLE__
+    #define BMI_TEST_C_LOCAL_LIB_NAME "libpetbmi.dylib"
+#else
+#ifdef __GNUC__
+    #define BMI_TEST_C_LOCAL_LIB_NAME "libpetbmi.so"
+    #endif // __GNUC__
+#endif // __APPLE__
+#endif // BMI_TEST_C_LOCAL_LIB_NAME
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -9,7 +19,6 @@
 #include "FileChecker.h"
 #include "Formulation_Manager.hpp"
 #include "Forcing.h"
-//#include <CsvPerFeatureForcingProvider.hpp>
 
 using namespace realization;
 using namespace std;
@@ -100,7 +109,7 @@ void Bmi_C_Pet_IT::SetUp() {
     catchment_ids[0] = "cat-27";
     model_type_name[0] = "bmi_c_pet";
     forcing_file[0] = find_file(forcing_dir_opts, "cat-27_2015-12-01 00_00_00_2015-12-30 23_00_00.csv");
-    lib_file[0] = find_file(lib_dir_opts, "libpetbmi.so");
+    lib_file[0] = find_file(lib_dir_opts, BMI_TEST_C_LOCAL_LIB_NAME);
     registration_functions[0] = "register_bmi_pet";
     init_config[0] = find_file(bmi_init_cfg_dir_opts, "cat-27_bmi_config.ini");
     main_output_variable[0] = "water_potential_evaporation_flux";
@@ -109,7 +118,7 @@ void Bmi_C_Pet_IT::SetUp() {
     catchment_ids[1] = "cat-67";
     model_type_name[1] = "bmi_c_pet";
     forcing_file[1] = find_file(forcing_dir_opts, "cat-67_2015-12-01 00_00_00_2015-12-30 23_00_00.csv");
-    lib_file[1] = find_file(lib_dir_opts, "libpetbmi.so");
+    lib_file[1] = find_file(lib_dir_opts, BMI_TEST_C_LOCAL_LIB_NAME);
     registration_functions[1] = "register_bmi_pet";
     init_config[1] = find_file(bmi_init_cfg_dir_opts, "cat-67_bmi_config.ini");
     main_output_variable[1] = "water_potential_evaporation_flux";
