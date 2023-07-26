@@ -56,7 +56,6 @@ function(git_update_submodule PATH)
 endfunction()
 
 set(PROJ_ROOT_INCLUDE_DIR ./include)
-set(PROJ_ROOT_MODELS_DIR ./models)
 
 set(HYMOD_DIR ${PROJ_ROOT_MODELS_DIR}/hymod)
 set(HYMOD_INCLUDE_DIR ${HYMOD_DIR}/include)
@@ -83,10 +82,7 @@ if(MPI_ACTIVE)
     add_compile_definitions(NGEN_MPI_ACTIVE)
 endif()
 
-if(LSTM_TORCH_LIB_ACTIVE)
-   find_package(Torch REQUIRED)
-   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
-endif()
+find_package(Boost 1.72.0 REQUIRED)
 
 find_package(SQLite3)
 if(SQLite3_FOUND)
@@ -222,22 +218,14 @@ if(NGEN_WITH_SQLITE3)
 endif()
 
 add_subdirectory("src/realizations/catchment")
-add_subdirectory("src/models/tshirt")
-add_subdirectory("src/models/kernels/reservoir")
-add_subdirectory("src/models/kernels/evapotranspiration")
 add_subdirectory("src/forcing")
 
 target_link_libraries(ngen PUBLIC
         NGen::core
         NGen::core_catchment
-        #NGen::core_catchment_giuh
         NGen::core_nexus
         NGen::geojson
-        NGen::models_tshirt
         NGen::realizations_catchment
-        NGen::kernels_reservoir
-        NGen::kernels_evapotranspiration
-        #NGen::kernels_reservoir_timeless
         NGen::forcing
         NGen::core_mediator
         libudunits2
@@ -262,15 +250,6 @@ if(NGEN_ACTIVATE_ROUTING)
     add_subdirectory("src/routing")
     target_link_libraries(ngen PUBLIC
             NGen::routing
-           )
-endif()
-
-if(LSTM_TORCH_LIB_ACTIVE)
-    add_compile_definitions(NGEN_LSTM_TORCH_LIB_ACTIVE)
-    add_subdirectory("src/models/lstm")
-    target_link_libraries(ngen PUBLIC
-            NGen::models_lstm
-            ${TORCH_LIBRARIES}
            )
 endif()
 
