@@ -65,16 +65,6 @@ function(add_test TESTNAME NUM_FILES)
     set_target_properties(${TESTNAME} PROPERTIES FOLDER test)
 endfunction()
 
-########################## Individual tests ##########################
-
-#add_automated_test(test_hymod models/hymod/include/HymodTest.cpp)
-#
-#add_automated_test(
-#        test_tshirt
-#        models/tshirt/include/TshirtTest.cpp
-#        realizations/catchments/Tshirt_C_Realization_Test.cpp
-#)
-
 ########################## GeoJSON Unit Tests
 add_test(test_geojson
         4
@@ -105,14 +95,6 @@ add_test(test_realization_config
         NGen::forcing
         libudunits2
         ${NETCDF_LIBRARIES}
-)
-
-########################## GIUH Unit Tests
-add_test(
-        test_giuh
-        1
-        core/catchment/giuh/GIUH_Test.cpp
-        NGen::core_catchment_giuh
 )
 
 ########################## Nexus Tests
@@ -275,21 +257,6 @@ add_test(
         ${NETCDF_LIBRARIES}
 )
 
-########################## Internal Torchlib LSTM Tests
-if(LSTM_TORCH_LIB_ACTIVE)
-    add_test(
-            test_lstm
-            2
-            models/lstm/include/LSTM_Test.cpp
-            realizations/catchments/LSTM_Realization_Test.cpp
-            NGen::core
-            NGen::realizations_catchment
-            NGen::core_mediator
-            libudunits2
-            ${NETCDF_LIBRARIES}
-    )
-endif()
-
 ########################## Routing Tests
 if(NGEN_ACTIVATE_ROUTING)
     add_test(
@@ -331,11 +298,7 @@ add_test(
 ########################## Primary Combined Unit Test Target
 add_test(
         test_unit
-        19
-        models/hymod/include/HymodTest.cpp
-        models/hymod/include/Reservoir_Test.cpp
-        models/hymod/include/Reservoir_Timeless_Test.cpp
-        models/tshirt/include/TshirtTest.cpp
+        14
         realizations/catchments/Tshirt_C_Realization_Test.cpp
         geojson/JSONProperty_Test.cpp
         geojson/JSONGeometry_Test.cpp
@@ -346,7 +309,6 @@ add_test(
         forcing/NetCDFPerFeatureDataProvider_Test.cpp
         core/mediator/UnitsHelper_Tests.cpp
         simulation_time/Simulation_Time_Test.cpp
-        core/catchment/giuh/GIUH_Test.cpp
         core/NetworkTests.cpp
         utils/include/StreamOutputTest.cpp
         realizations/Formulation_Manager_Test.cpp
@@ -361,17 +323,10 @@ add_test(
         ${NETCDF_LIBRARIES}
 )
 
-# Add for integration tests once we have some
-#add_automated_test(test_it models/hymod/include/HymodTest.cpp)
-
 # All automated tests
 add_test(
         test_all
-        18
-        models/hymod/include/HymodTest.cpp
-        models/hymod/include/Reservoir_Test.cpp
-        models/hymod/include/Reservoir_Timeless_Test.cpp
-        models/tshirt/include/TshirtTest.cpp
+        13
         realizations/catchments/Tshirt_C_Realization_Test.cpp
         geojson/JSONProperty_Test.cpp
         geojson/JSONGeometry_Test.cpp
@@ -381,7 +336,6 @@ add_test(
         forcing/OptionalWrappedDataProvider_Test.cpp
         forcing/NetCDFPerFeatureDataProvider_Test.cpp
         simulation_time/Simulation_Time_Test.cpp
-        core/catchment/giuh/GIUH_Test.cpp
         core/mediator/UnitsHelper_Tests.cpp
         realizations/Formulation_Manager_Test.cpp
         core/nexus/NexusTests.cpp

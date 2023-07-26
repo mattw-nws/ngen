@@ -13,19 +13,12 @@ target_include_directories(realizations_catchment PUBLIC
         ${PROJECT_SOURCE_DIR}/include/simulation_time
         ${PROJECT_SOURCE_DIR}/include/utilities
         ${PROJECT_SOURCE_DIR}/include/geojson
-        ${PROJECT_SOURCE_DIR}/models
-        ${PROJECT_SOURCE_DIR}/models/kernels
-        ${PROJECT_SOURCE_DIR}/models/kernels/evapotranspiration
-        ${PROJECT_SOURCE_DIR}/models/tshirt/include
         )
         
 target_link_libraries(realizations_catchment PUBLIC
         ${CMAKE_DL_LIBS}
         NGen::core_catchment
-        NGen::core_catchment_giuh
-        NGen::models_tshirt
         NGen::geojson
-        NGen::kernels_evapotranspiration
         )
 
 if(NGEN_ACTIVATE_PYTHON)
@@ -40,17 +33,4 @@ SET(BMI_FORTRAN_ISO_C_LIB_NAME "iso_c_bmi" CACHE STRING "Name for middleware For
 if (${BMI_FORTRAN_ACTIVE})
    find_library(BMI_FORTRAN_ISO_C_LIB_PATH "${BMI_FORTRAN_ISO_C_LIB_NAME}" PATHS "${BMI_FORTRAN_ISO_C_LIB_DIR}")
    target_link_libraries(realizations_catchment PRIVATE "${BMI_FORTRAN_ISO_C_LIB_PATH}")
-endif()
-
-add_dependencies(realizations_catchment NGen::kernels_evapotranspiration)
-
-if(LSTM_TORCH_LIB_ACTIVE)
-   add_compile_definitions(NGEN_LSTM_TORCH_LIB_ACTIVE)
-
-   target_include_directories(realizations_catchment PUBLIC
-        ${PROJECT_SOURCE_DIR}/models/lstm/include
-        )
-   target_link_libraries(realizations_catchment PUBLIC
-        NGen::models_lstm
-        )
 endif()

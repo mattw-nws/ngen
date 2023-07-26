@@ -9,9 +9,6 @@
 #include <boost/optional.hpp>
 
 // Formulations
-#include "Tshirt_Realization.hpp"
-#include "Tshirt_C_Realization.hpp"
-#include "Simple_Lumped_Model_Realization.hpp"
 #include "Bmi_Cpp_Formulation.hpp"
 #include "Bmi_C_Formulation.hpp"
 #include "Bmi_Fortran_Formulation.hpp"
@@ -21,10 +18,6 @@
 #include "CsvPerFeatureForcingProvider.hpp"
 #ifdef NETCDF_ACTIVE
     #include "NetCDFPerFeatureDataProvider.hpp"
-#endif
-
-#ifdef NGEN_LSTM_TORCH_LIB_ACTIVE
-    #include "LSTM_Realization.hpp"
 #endif
 
 namespace realization {
@@ -49,13 +42,6 @@ namespace realization {
 #ifdef ACTIVATE_PYTHON
         {"bmi_python", create_formulation_constructor<Bmi_Py_Formulation>()},
 #endif // ACTIVATE_PYTHON
-        {"tshirt", create_formulation_constructor<Tshirt_Realization>()},
-        {"tshirt_c", create_formulation_constructor<Tshirt_C_Realization>()},
-        {"simple_lumped", create_formulation_constructor<Simple_Lumped_Model_Realization>()}
-#ifdef NGEN_LSTM_TORCH_LIB_ACTIVE
-        ,
-        {"lstm", create_formulation_constructor<LSTM_Realization>()}
-#endif
     };
 
     static bool formulation_exists(std::string formulation_type) {
