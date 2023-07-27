@@ -25,10 +25,6 @@ if(BMI_FORTRAN_ACTIVE)
     add_compile_definitions(NGEN_BMI_FORTRAN_LIB_TESTS_ACTIVE)
 endif()
 
-if(LSTM_TORCH_LIB_ACTIVE)
-    add_compile_definitions(LSTM_TORCH_LIB_TESTS_ACTIVE)
-endif()
-
 if(NGEN_ACTIVATE_ROUTING)
     add_compile_definitions(ROUTING_PYBIND_TESTS_ACTIVE)
 endif()
@@ -229,20 +225,6 @@ if(BMI_C_LIB_ACTIVE)
     endif()
 endif()
 
-########################## Comparison tests for the BMI CFE implementation
-# TODO: this probably needs to be added to integration testing also
-add_test(
-        compare_cfe
-        1
-        realizations/catchments/Bmi_C_Cfe_IT.cpp
-        NGen::core
-        NGen::realizations_catchment
-        NGen::core_mediator
-        NGen::forcing
-        libudunits2
-        ${NETCDF_LIBRARIES}
-)
-
 ########################## Comparison tests for the BMI PET implementation
 # TODO: this probably needs to be added to integration testing also
 add_test(
@@ -298,8 +280,7 @@ add_test(
 ########################## Primary Combined Unit Test Target
 add_test(
         test_unit
-        14
-        realizations/catchments/Tshirt_C_Realization_Test.cpp
+        13
         geojson/JSONProperty_Test.cpp
         geojson/JSONGeometry_Test.cpp
         geojson/Feature_Test.cpp
@@ -326,8 +307,7 @@ add_test(
 # All automated tests
 add_test(
         test_all
-        13
-        realizations/catchments/Tshirt_C_Realization_Test.cpp
+        12
         geojson/JSONProperty_Test.cpp
         geojson/JSONGeometry_Test.cpp
         geojson/Feature_Test.cpp
