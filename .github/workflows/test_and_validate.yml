@@ -44,13 +44,6 @@ jobs:
         mod-dir: "extern/test_bmi_cpp/"
         targets: "testbmicppmodel"
 
-    - name: Build test_bmi_c
-      id: submod_build_test_bmi_c
-      uses: ./.github/actions/ngen-submod-build
-      with: 
-        mod-dir: "extern/test_bmi_c"
-        targets: "testbmicmodel"
-
     - name: Build Unit Tests
       uses: ./.github/actions/ngen-build
       with:
