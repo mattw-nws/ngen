@@ -33,6 +33,24 @@ jobs:
     - name: Checkout the commit
       uses: actions/checkout@v2
     
+    - uses: ./.github/actions/ngen-submod-build
+      with: 
+        mod-dir: "extern/bmi-cxx/"
+
+    - name: Build test_bmi_cpp
+      id: submod_build_test_bmi_cpp
+      uses: ./.github/actions/ngen-submod-build
+      with: 
+        mod-dir: "extern/test_bmi_cpp/"
+        targets: "testbmicppmodel"
+
+    - name: Build test_bmi_c
+      id: submod_build_test_bmi_c
+      uses: ./.github/actions/ngen-submod-build
+      with: 
+        mod-dir: "extern/test_bmi_c"
+        targets: "testbmicmodel"
+
     - name: Build Unit Tests
       uses: ./.github/actions/ngen-build
       with:
