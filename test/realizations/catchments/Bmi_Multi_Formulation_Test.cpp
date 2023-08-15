@@ -343,6 +343,7 @@ private:
         auto list = specified_output_variables[ex_index];
         std::string s = "";
         if(list.size() == 0){
+std::cout<<"buildExampleOutputVariablesSubConfig returns: "<<s<<std::endl;
             return s;
         }
         s = ",\"output_variables\": [";
@@ -352,6 +353,7 @@ private:
             comma = ",";
         }
         s += "]";
+std::cout<<"buildExampleOutputVariablesSubConfig returns: "<<s<<std::endl;
         return s;
     }
 
