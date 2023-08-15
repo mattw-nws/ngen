@@ -137,6 +137,8 @@ void Bmi_Multi_Formulation::create_multi_formulation(geojson::PropertyMap proper
     if (out_precision_it != properties.end()) {
         set_output_precision(properties.at(BMI_REALIZATION_CFG_PARAM_OPT__OUTPUT_PRECISION).as_natural_number());
     }
+
+    validate_output_variables();
 }
 
 /**

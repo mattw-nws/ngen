@@ -51,6 +51,7 @@ namespace realization {
         void create_formulation(boost::property_tree::ptree &config, geojson::PropertyMap *global = nullptr) override {
             geojson::PropertyMap options = this->interpret_parameters(config, global);
             inner_create_formulation(options, false);
+            validate_output_variables();
         }
 
         void create_formulation(geojson::PropertyMap properties) override {

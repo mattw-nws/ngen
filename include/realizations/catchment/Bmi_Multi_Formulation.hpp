@@ -700,6 +700,35 @@ namespace realization {
             return mod;
         }
 
+        virtual void validate_output_variables(){
+            const std::vector<std::string> &output_var_names = get_output_variable_names();
+            //const std::vector<std::string> &available_var_names = get_available_variable_names();
+            std::vector<std::string> available_var_names = {};
+            for(auto iter = availableData.begin(); iter != availableData.end(); ++iter)
+            {
+                std::string var_name = iter->first;
+                available_var_names.push_back(var_name);
+            }
+
+std::cout << "available_var_names=";
+for (std::string s: available_var_names)
+    std::cout << s << ',';
+std::cout << std::endl;
+std::cout << "output_var_names=";
+for (std::string s: output_var_names)
+    std::cout << s << ',';
+std::cout << std::endl;
+
+            for (auto& outvar: output_var_names){
+                auto iter = std::find(available_var_names.begin(), available_var_names.end(), outvar);
+                if (iter == available_var_names.end()) {
+                    // Check forcing, since Bmi_Multi_Formulation can return forcing values also
+                    throw std::runtime_error(outvar + " does not exist in the output name list" + SOURCE_LOC);
+                }                
+            }
+        }
+
+
         /**
          * A mapping of data properties to their providers.
          *

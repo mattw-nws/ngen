@@ -8,6 +8,7 @@
 #include <memory>
 #include "Catchment_Formulation.hpp"
 #include "GenericDataProvider.hpp"
+#include "all.h"
 
 // Define the configuration parameter names used in the realization/formulation config JSON file
 // First the required:
@@ -253,6 +254,27 @@ namespace realization {
          */
         void set_output_variable_names(const vector<string> &out_var_names) {
             output_variable_names = out_var_names;
+        }
+
+
+        virtual void validate_output_variables(){
+            const std::vector<std::string> &output_var_names = get_output_variable_names();
+            const std::vector<std::string> &available_var_names = get_available_variable_names();
+std::cout << "available_var_names=";
+for (std::string s: available_var_names)
+    std::cout << s << ',';
+std::cout << std::endl;
+std::cout << "output_var_names=";
+for (std::string s: output_var_names)
+    std::cout << s << ',';
+std::cout << std::endl;
+
+            for (auto& outvar: output_var_names){
+                auto it = std::find(available_var_names.begin(), available_var_names.end(), outvar);
+                if (it == available_var_names.end()) {
+                    throw std::runtime_error(outvar + " does not exist in the output name list" + SOURCE_LOC);
+                }                
+            }
         }
 
     private:
