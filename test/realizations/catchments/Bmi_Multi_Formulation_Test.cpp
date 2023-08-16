@@ -398,7 +398,13 @@ std::cout<<"buildExampleOutputVariablesSubConfig returns: "<<s<<std::endl;
 
         std::stringstream stream;
         stream << config_json[ex_index];
-
+/*
+std::cout << "#######################################" << std::endl;
+std::cout << "buildExampleConfig("<<ex_index<<")"<<std::endl;
+std::cout << "#######################################" << std::endl;
+std::cout << config << std::endl;
+std::cout << "#######################################" << std::endl;
+*/
         boost::property_tree::ptree loaded_tree;
         boost::property_tree::json_parser::read_json(stream, loaded_tree);
         config_prop_ptree[ex_index] = loaded_tree.get_child("catchments").get_child(catchment_ids[ex_index]).get_child(

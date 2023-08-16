@@ -1,0 +1,70 @@
+{
+    "global": {
+        "formulations": [
+            {
+                "name": "bmi_multi",
+                "params": {
+                    "model_type_name": "issue535_example_1",
+                    "forcing_file": "",
+                    "init_config": "",
+                    "allow_exceed_end_time": true,
+                    "main_output_variable": "sloth_2_var_E",
+                    "output_variables" : [
+                        "sloth_2_var_C",
+                        "sloth_2_var_E",
+                        "sloth_1_var_B",
+                        "atmosphere_water__liquid_equivalent_precipitation_rate",
+                        "sloth_2_var_D_remapped"
+                    ],
+                    "modules": [
+            			{
+            			    "name": "bmi_c++",
+            			    "params": {
+                                "model_type_name": "bmi_c++_sloth",
+                                "library_file": "./extern/sloth/cmake_build/libslothmodel",
+                                "init_config": "/dev/null",
+                                "allow_exceed_end_time": true,
+                                "main_output_variable": "sloth_1_var_B",
+                                "uses_forcing_file": false,
+                                "model_params": {
+                                    "sloth_1_var_A(1,double,m)": 1.0,
+                                    "sloth_1_var_B(1,double,kg)": 2.0
+                                }
+            			    }
+                        },
+            			{
+            			    "name": "bmi_c++",
+            			    "params": {
+                                "model_type_name": "bmi_c++_sloth",
+                                "library_file": "./extern/sloth/cmake_build/libslothmodel",
+                                "init_config": "/dev/null",
+                                "allow_exceed_end_time": true,
+                                "main_output_variable": "sloth_2_var_E",
+                                "uses_forcing_file": false,
+                                "model_params": {
+                                    "sloth_2_var_C(1,double,m,node,sloth_1_var_A)": 0.0,
+                                    "sloth_2_var_D(1,double,kg)": 4.0,
+                                    "sloth_2_var_E(1,double,L)": 5.0
+                                },
+                                "variables_names_map": {
+                                    "sloth_2_var_D": "sloth_2_var_D_remapped"
+                                }
+                            }
+                        }
+                    ],
+                    "uses_forcing_file": false
+                }
+            }
+        ],
+        "forcing": {
+            "file_pattern": ".*{{id}}.*..csv",
+            "path": "./data/forcing/",
+            "provider": "CsvPerFeature"
+        }
+    },
+    "time": {
+        "start_time": "2015-12-01 00:00:00",
+        "end_time": "2015-12-01 02:00:00",
+        "output_interval": 3600
+    }
+}
