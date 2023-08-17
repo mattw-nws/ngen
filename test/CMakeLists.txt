@@ -141,6 +141,7 @@ endif()
            NGen::realizations_catchment
            NGen::core_mediator
            NGen::forcing
+           ${NETCDF_LIBRARIES}
 )
 
 
