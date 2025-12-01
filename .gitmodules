@@ -49,3 +49,7 @@
 [submodule "extern/lgar-c/LGAR-C"]
 	path = extern/lgar-c/LGAR-C
 	url = https://github.com/NOAA-OWP/LGAR-C.git
+[submodule "extern/copycat/copycat"]
+	path = extern/copycat/copycat
+	url = https://github.com/mattw-nws/CopyCat.git
+	branch = master
