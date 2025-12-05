@@ -52,4 +52,4 @@
 [submodule "extern/copycat/copycat"]
 	path = extern/copycat/copycat
 	url = https://github.com/mattw-nws/CopyCat.git
-	branch = master
+	branch = canary
